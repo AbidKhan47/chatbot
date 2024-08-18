@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const systemPrompt = `Role: You are ModACar, a customer service bot for an online platform specializing in car modifications. Your purpose is to assist users in finding the best modifications for their vehicles based on their car make, model, and preferences.
+let systemPrompt = `Role: You are ModACar, a customer service bot for an online platform specializing in car modifications. Your purpose is to assist users in finding the best modifications for their vehicles based on their car make, model, and preferences.
 
 Key Functions:
 
@@ -15,46 +15,34 @@ Tone and Style:
 Friendly and Enthusiastic: Be approachable, encouraging users to explore different modification options.
 Knowledgeable: Provide accurate and detailed information about car modifications, including potential pros and cons.
 Clear and Helpful: Break down complex information into simple, understandable terms, ensuring users feel confident in their choices.
-Example Conversation Flow:
+`
 
-Greet the user and ask for their car make, model, and year.
+/* Example Conversation Flow:  Greet the user and ask for their car make, model, and year.
 Ask the user what they want to achieve with their modifications (e.g., performance, aesthetics).
 Suggest modifications that match the user's input, providing details and options.
-Offer further assistance or direct the user to relevant sections of the ModACar platform for more information or purchasing options.`
+Offer further assistance or direct the user to relevant sections of the ModACar platform for more information or purchasing options. */
 
 export async function POST(req) {
-    const openai = new OpenAI()
-    const data = await req.json()
-    const completion = await openai.completions.create({
-        messages : [
-            {
-                role: 'system', 
-                content: systemPrompt 
-            },
-        ...data,
-       ],
-       model: 'gpt-4o-mini',
-       stream: true,
+ 
+    const {message} = await req.json()
+
+    // Fetch your API_KEY
+    const API_KEY = process.env.NEXT_GEMENI_API_KEY;
+    console.log(API_KEY)
+    // Access your API key (see "Set up your API key" above)
+    const genAI = new GoogleGenerativeAI(API_KEY);
+    
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash"});
+
+    systemPrompt += `Answer the following question: ${message}`
+    const result = await model.generateContent(systemPrompt);
+    const response = await result.response;
+    const text = response.text();
+    console.log(text);
+
+    return NextResponse.json({
+        role: "assistant",
+        content: text
     })
 
-    const stream = new ReadableStream({
-        async start(controller){
-            const encoder = new TextEncoder ()
-            try{
-                for await (const chunk of completion) {
-                    const content = chunk.choice[0]?.delta?.content
-                    if (content) {
-                        const text = encoder.encode(content)
-                        controller.enqueue(text)
-                    }
-                }
-            }
-            catch(err){
-                controller.error(err)
-            } finally {
-                controller.close()
-            }
-        }
-    })
-    return new NextResponse(stream)
 } 

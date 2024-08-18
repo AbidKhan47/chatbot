@@ -7,50 +7,53 @@ export default function Home() {
   const [messages, setMessages] = useState ([
     {
     role: 'assistant',
-    content: `Hi, I'm the Headstarter Support userAgent`,
+    content: `Hi, I'm ModACar`,
    },
   ])
 
   const [message, setMessage] = useState('')
   
-  const sendMessage = async() => {
-    setMessage('')
-    setMessages((messages) =>[
+  const sendMessage = async () => {
+    // Add the user's message to the state
+    setMessages((messages) => [
       ...messages,
-      {role: "user", content: message},
-      {role: 'asistant', content: ''}
-    ])
-    const response = fetch('/api/chat',{
-      method: "POST",
-      headers:{
-        'Content-Type' : 'applications/json'
-      },
-      body: JSON.stringify([...messages,{role: 'user', content: message}])
-    }).then(async (res) => {
-      const reader = res.body.getReader()
-      const decoder = new TextDecoder()
-
-      let result = ''
-      return reader.read().then(function processText({done, value}){
-        if (done) {
-          return result
-        }
-        const text = decoder.decode(value || new Int8Array(), {stream: true})
-        setMessages((messages)=>{
-          let lastMessage = messages[messages.length - 1]
-          let otherMessages = messages.slice(0, messages.length -1)
-          return([
-            ...otherMessages,
-            {
-              ...lastMessage,
-              content: lastMessage.content + text,
-            },
-          ])
+      { role: "user", content: message },
+    ]);
+  
+    try {
+      // Send the message to the API
+      const response = await fetch('/api/chat', {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json' // Corrected header
+        },
+        body: JSON.stringify({
+          message: message
         })
-        return reader.read().then(processText)
-      })
-    })
+      });
+  
+      // Check if the response is OK (status 200-299)
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+  
+      // Parse the JSON response
+      const data = await response.json();
+  
+      // Add the assistant's response to the state
+      setMessages((messages) => [
+        ...messages,
+        { role: data.role, content: data.content },
+      ]);
+  
+    } catch (error) {
+      console.error("Error sending message:", error);
+    }
+  
+    // Clear the input field
+    setMessage('');
   }
+  
 
   return (
     <Box 
