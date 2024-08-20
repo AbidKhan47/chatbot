@@ -1,7 +1,7 @@
 'use client'
-import { Box, Stack, TextField, Button} from "@mui/material";
+import { Box, Stack, TextField, Button, Typography} from "@mui/material";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 
 export default function Home() {
   const [messages, setMessages] = useState ([
@@ -13,6 +13,13 @@ export default function Home() {
 
   const [message, setMessage] = useState('')
   
+  const handleKeyDown = (event) => {
+    if (event.key === 'Enter') {
+      sendMessage();
+    }
+  };
+  const messageEndRef = useRef(null);
+
   const sendMessage = async () => {
     // Add the user's message to the state
     setMessages((messages) => [
@@ -52,8 +59,12 @@ export default function Home() {
   
     // Clear the input field
     setMessage('');
+    messageEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
   
+  useEffect(() => {
+    messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   return (
     <Box 
@@ -64,11 +75,17 @@ export default function Home() {
       justifyContent='center'
       alignItems='center'
   >
+    <Box sx={{ position: 'absolute', top: 16, left: 16 }}>
+        <Typography variant="h6" component="h2">
+          ModACar
+        </Typography>
+    </Box>
     <Stack 
     direction = "column"
     width = "600px"
     height = "700px"
     border = "1px solid black"
+    borderRadius = {2}
     p={2}
     spacing = {3}
     >
@@ -85,7 +102,7 @@ export default function Home() {
             message.role ==='assistant' ? 'primary.main' : 'secondary.main'
           }
           color = 'white'
-          borderRadius = {16}
+          borderRadius = {8}
           p={3}
           >
              {message.content}
@@ -93,7 +110,7 @@ export default function Home() {
           </Box>
         ))
        }
-
+        <div ref={messageEndRef} />
        </Stack>
        <Stack direction = 'row' spacing = {2}>
         <TextField
@@ -101,6 +118,7 @@ export default function Home() {
         fullWidth
         value = {message}
         onChange={(e) => setMessage(e.target.value)} 
+        onKeyDown={handleKeyDown}
         />
         <Button variant = 'contained' onClick={sendMessage}>
           Send
